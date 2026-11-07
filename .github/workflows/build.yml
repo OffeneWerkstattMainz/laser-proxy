@@ -13,6 +13,7 @@ jobs:
       matrix:
         config:
           - laser-proxy.yaml
+          - laser-proxy-s3-eth.yaml
           - laser-proxy-s3-wlan.yaml
     steps:
       - uses: actions/checkout@v4
@@ -35,10 +36,10 @@ jobs:
       - name: Firmware-Dateien einsammeln
         run: |
           mkdir -p artifacts
-          find .esphome/build -path '*/.pioenvs/*' -name 'firmware*.bin' -exec cp {} artifacts/ \;
+          find .esphome/build -name 'firmware*.bin' -exec cp {} artifacts/ \;
           ls -l artifacts
       - uses: actions/upload-artifact@v4
         with:
           name: firmware-${{ matrix.config }}
           path: artifacts/
-          if-no-files-found: warn
+          if-no-files-found: error
