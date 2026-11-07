@@ -11,7 +11,10 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import pins
 from esphome.components import binary_sensor, sensor, text_sensor
-from esphome.components.esp32 import add_idf_sdkconfig_option
+from esphome.components.esp32 import (
+    add_idf_sdkconfig_option,
+    include_builtin_idf_component,
+)
 from esphome.const import (
     CONF_ID,
     DEVICE_CLASS_CONNECTIVITY,
@@ -209,6 +212,8 @@ async def to_code(config):
     if conf := config.get(CONF_PACKETS_DROPPED):
         cg.add(var.set_dropped_sensor(await sensor.new_sensor(conf)))
 
-    # Treiber fuer den W5500 im ESP-IDF einschalten
+    # Ethernet-Treiber des ESP-IDF einbinden (ESPHome schliesst ihn ohne
+    # ethernet:-Komponente aus) und den W5500-Treiber einschalten
+    include_builtin_idf_component("esp_eth")
     add_idf_sdkconfig_option("CONFIG_ETH_USE_SPI_ETHERNET", True)
     add_idf_sdkconfig_option("CONFIG_ETH_SPI_ETHERNET_W5500", True)
