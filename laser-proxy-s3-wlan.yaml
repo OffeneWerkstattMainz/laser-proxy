@@ -1,0 +1,73 @@
+# Laser-Proxy auf dem Waveshare ESP32-S3-ETH, ohne Zusatzhardware:
+#   WLAN                       -> Vereinsnetz
+#   eingebauter Port (W5500)   -> Laser-Controller (eigenes Netz 192.168.1.0/24)
+# W5500-Pins laut Waveshare-Wiki (MISO 12, MOSI 11, SCLK 13, CS 14, INT 10, RST 9).
+# Strom ueber USB-C, PoE kommt am Laser-Port nicht an.
+
+substitutions:
+  name: laser-proxy
+  friendly_name: Laser-Proxy
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+esp32:
+  board: esp32-s3-devkitc-1
+  framework:
+    type: esp-idf
+
+external_components:
+  - source:
+      type: local
+      path: components
+
+logger:
+  level: INFO
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+  reboot_timeout: 0s
+
+ota:
+  - platform: esphome
+    # Nutzt denselben Schluessel wie die API
+    encryption: {}
+
+web_server:
+  port: 80
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  # Feste IP im Vereinsnetz, damit LightBurn den Proxy immer findet:
+  # manual_ip:
+  #   static_ip: 192.168.0.50
+  #   gateway: 192.168.0.1
+  #   subnet: 255.255.255.0
+
+laser_proxy:
+  w5500:
+    clk_pin: GPIO13
+    mosi_pin: GPIO11
+    miso_pin: GPIO12
+    cs_pin: GPIO14
+    interrupt_pin: GPIO10
+    reset_pin: GPIO9
+  local_ip: 192.168.1.1
+  laser_ip: 192.168.1.100
+  laser_link:
+    name: Laser verbunden
+  client:
+    name: Aktiver Client
+  packets_to_laser:
+    name: Pakete zum Laser
+  packets_from_laser:
+    name: Pakete vom Laser
+  packets_dropped:
+    name: Verworfene Pakete
+
+button:
+  - platform: restart
+    name: Neustart

@@ -1,0 +1,45 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - laser-proxy.yaml
+          - laser-proxy-s3-eth.yaml
+          - laser-proxy-s3-wlan.yaml
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: ESPHome installieren
+        run: pip install esphome
+      - name: Platzhalter-Secrets anlegen
+        run: |
+          {
+            echo "api_encryption_key: \"$(openssl rand -base64 32)\""
+            echo "wifi_ssid: \"ci-build\""
+            echo "wifi_password: \"ci-build-password\""
+          } > secrets.yaml
+      - name: Konfiguration pruefen
+        run: esphome config ${{ matrix.config }} > /dev/null
+      - name: Firmware bauen
+        run: esphome compile ${{ matrix.config }}
+      - name: Firmware-Dateien einsammeln
+        run: |
+          mkdir -p artifacts
+          find .esphome/build -name 'firmware*.bin' -exec cp {} artifacts/ \;
+          ls -l artifacts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firmware-${{ matrix.config }}
+          path: artifacts/
+          if-no-files-found: error

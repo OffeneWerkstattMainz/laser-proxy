@@ -1,0 +1,83 @@
+# Laser-Proxy auf einem WT32-ETH01 (ESP32 + LAN8720) mit zusaetzlichem W5500-Modul.
+#   eingebauter Ethernet-Port  -> Vereinsnetz (DHCP)
+#   W5500-Modul                -> Laser-Controller (eigenes Netz 192.168.1.0/24)
+# Verdrahtung und Einrichtung: siehe README.md
+
+substitutions:
+  name: laser-proxy
+  friendly_name: Laser-Proxy
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+external_components:
+  - source:
+      type: local
+      path: components
+  # Ausserhalb dieses Repos (z.B. im ESPHome-Dashboard von Home Assistant):
+  # - source: github://OffeneWerkstattMainz/laser-proxy@main
+
+logger:
+  level: INFO
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+  # Ohne verbundenes Home Assistant nicht alle 15 Minuten neu starten
+  reboot_timeout: 0s
+
+ota:
+  - platform: esphome
+    # Nutzt denselben Schluessel wie die API
+    encryption: {}
+
+web_server:
+  port: 80
+
+ethernet:
+  type: LAN8720
+  mdc_pin: GPIO23
+  mdio_pin: GPIO18
+  clk:
+    mode: CLK_EXT_IN
+    pin: GPIO0
+  phy_addr: 1
+  power_pin: GPIO16
+  # Statt DHCP eine feste Adresse im Vereinsnetz:
+  # manual_ip:
+  #   static_ip: 192.168.0.50
+  #   gateway: 192.168.0.1
+  #   subnet: 255.255.255.0
+
+laser_proxy:
+  w5500:
+    clk_pin: GPIO14
+    mosi_pin: GPIO15
+    miso_pin: GPIO35
+    cs_pin: GPIO4
+    interrupt_pin: GPIO36
+    reset_pin: GPIO32
+  local_ip: 192.168.1.1
+  laser_ip: 192.168.1.100
+  # Nur Clients aus diesem Netz duerfen den Laser ansprechen (Standard: alle)
+  # allowed_network: 192.168.0.0/24
+  laser_link:
+    name: Laser verbunden
+  client:
+    name: Aktiver Client
+  packets_to_laser:
+    name: Pakete zum Laser
+  packets_from_laser:
+    name: Pakete vom Laser
+  packets_dropped:
+    name: Verworfene Pakete
+
+button:
+  - platform: restart
+    name: Neustart
